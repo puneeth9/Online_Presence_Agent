@@ -2,6 +2,7 @@ const db = require('../db');
 
 const { searchPerson } = require('./search.service');
 const { fetchPage } = require('./fetch.service');
+const { extractProfile } = require('./extract.service');
 
 async function processJob(job) {
   const { jobId, name } = job || {};
@@ -34,7 +35,18 @@ async function processJob(job) {
       console.log('Inserted source');
     }
 
-    const result = { sourcesCollected };
+    const sourcesRes = await db.query(
+      'SELECT url, title, snippet, content FROM sources WHERE job_id=$1 ORDER BY id ASC',
+      [jobId]
+    );
+
+    const profile = await extractProfile(
+      name,
+      description,
+      sourcesRes.rows || []
+    );
+
+    const result = { ...profile, sourcesCollected };
     await db.query(
       "UPDATE jobs SET status='completed', result=$2 WHERE id=$1",
       [jobId, JSON.stringify(result)]

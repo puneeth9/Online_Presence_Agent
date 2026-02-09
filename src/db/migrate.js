@@ -13,6 +13,18 @@ async function runMigrations() {
       );
     `);
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS sources (
+        id SERIAL PRIMARY KEY,
+        job_id UUID REFERENCES jobs(id),
+        url TEXT,
+        title TEXT,
+        snippet TEXT,
+        content TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+
     console.log('Migrations completed');
   } catch (err) {
     console.error('Migration failed', err);

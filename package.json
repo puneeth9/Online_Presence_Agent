@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/server.js",
+    "worker": "node src/worker/worker.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -13,6 +14,7 @@
   "type": "commonjs",
   "dependencies": {
     "@aws-sdk/client-sqs": "^3.985.0",
+    "axios": "^1.13.5",
     "cors": "^2.8.6",
     "dotenv": "^17.2.4",
     "express": "^5.2.1",

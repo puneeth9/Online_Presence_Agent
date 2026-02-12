@@ -1,0 +1,90 @@
+.resultGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.resultMetaRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.8);
+  font-weight: 900;
+  color: rgba(15, 23, 42, 0.75);
+}
+
+.resultTwoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 720px) {
+  .resultTwoCol {
+    grid-template-columns: 1fr;
+  }
+}
+
+.resultSectionTitle {
+  font-weight: 900;
+  margin-bottom: 8px;
+}
+
+.resultParagraph {
+  margin: 0;
+  color: rgba(15, 23, 42, 0.75);
+}
+
+.resultList {
+  margin: 0;
+  padding-left: 18px;
+  color: rgba(15, 23, 42, 0.75);
+}
+
+.linksGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.linkCard {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.65);
+  text-decoration: none;
+}
+
+.linkCard:hover {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.favicon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  margin-top: 2px;
+}
+
+.linkMeta {
+  min-width: 0;
+}
+
+.linkDomain {
+  font-weight: 900;
+  color: rgba(15, 23, 42, 0.85);
+}
+
+.linkHref {
+  font-size: 12px;
+  color: rgba(15, 23, 42, 0.6);
+  word-break: break-word;
+}
+

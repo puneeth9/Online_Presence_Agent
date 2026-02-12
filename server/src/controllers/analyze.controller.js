@@ -33,18 +33,36 @@ async function getJobStatus(req, res) {
   try {
     const { id } = req.params;
 
-    const result = await db.query('SELECT id, status FROM jobs WHERE id = $1', [
-      id,
-    ]);
+    const result = await db.query(
+      'SELECT id, name, description, status, created_at FROM jobs WHERE id = $1',
+      [id]
+    );
 
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Job not found' });
     }
 
     const row = result.rows[0];
-    return res.json({ jobId: row.id, status: row.status });
+    return res.json({
+      jobId: row.id,
+      name: row.name,
+      description: row.description,
+      status: row.status,
+      created_at: row.created_at,
+    });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch job status' });
+  }
+}
+
+async function getAllJobs(req, res) {
+  try {
+    const result = await db.query(
+      'SELECT id, name, description, status, created_at FROM jobs ORDER BY created_at DESC LIMIT 100'
+    );
+    return res.json(result.rows);
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to fetch jobs' });
   }
 }
 
@@ -69,6 +87,7 @@ async function getResult(req, res) {
 
 module.exports = {
   createJob,
+  getAllJobs,
   getJobStatus,
   getResult,
 };

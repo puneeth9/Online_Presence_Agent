@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api';
 import type { JobListItem } from '../api/ApiClient';
 
+const REFRESH_INTERVAL = 5000;
 function formatTime(iso: string) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
@@ -30,7 +31,7 @@ export default function Requests() {
 
   useEffect(() => {
     load();
-    const id = window.setInterval(load, 10_000);
+    const id = window.setInterval(load, REFRESH_INTERVAL);
     return () => window.clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -40,7 +41,7 @@ export default function Requests() {
       <div className="card">
         <div className="cardInner">
           <h1 className="title">Requests</h1>
-          <p className="muted">Auto-refreshes every 10 seconds.</p>
+          <p className="muted">Auto-refreshes every {REFRESH_INTERVAL / 1000} seconds.</p>
 
           {error ? <div className="error" style={{ marginTop: 12 }}>{error}</div> : null}
 

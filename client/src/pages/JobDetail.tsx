@@ -8,6 +8,7 @@ import ResultSummary from '../components/result/ResultSummary';
 import ResultMeta from '../components/result/ResultMeta';
 import ResultLinks from '../components/result/ResultLinks';
 import '../components/result/result.css';
+const REFRESH_INTERVAL = 5000;
 
 type ProfileResult = {
   summary?: string;
@@ -113,7 +114,7 @@ export default function JobDetail() {
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Polling failed');
       }
-    }, 30_000);
+    }, REFRESH_INTERVAL);
 
     return () => window.clearInterval(intervalId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -157,7 +158,7 @@ export default function JobDetail() {
                 <div className="cardInner">
                   <Spinner />
                   <div className="muted" style={{ textAlign: 'center' }}>
-                    Polling every 30 seconds…
+                    Polling every {REFRESH_INTERVAL / 1000} seconds…
                   </div>
                 </div>
               </div>

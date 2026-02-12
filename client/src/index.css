@@ -87,6 +87,9 @@ label {
 
 input,
 textarea {
+  font-family: inherit;
+  font-size: 14px; /* base size */
+  line-height: 1.4;
   width: 100%;
   padding: 10px 12px;
   border-radius: 12px;

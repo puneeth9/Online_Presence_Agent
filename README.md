@@ -1,6 +1,4 @@
-### 1. Hero Section
-
-## Online Presence Agent
+### Online Presence Agent
 
 An async pipeline that turns a person’s public web footprint into a structured profile.
 
@@ -12,7 +10,7 @@ An async pipeline that turns a person’s public web footprint into a structured
 
 ---
 
-### 2. Why This Project Matters
+### Why This Project Matters
 
 People’s “online presence” is scattered across profiles, articles, and social posts. This project turns that noisy, multi‑source data into a **single structured output** that’s easy to consume programmatically.
 
@@ -20,7 +18,7 @@ For engineers, it’s an end‑to‑end example of a **production‑minded async
 
 ---
 
-### 3. Features
+### Features
 
 - **Name search → presence aggregation** via Brave Search API
 - **Page fetching pipeline** with HTML-to-text extraction and length limits
@@ -31,7 +29,7 @@ For engineers, it’s an end‑to‑end example of a **production‑minded async
 
 ---
 
-### 4. Architecture Overview
+### Architecture Overview
 
 The system uses an async job flow so the UI stays fast while the backend performs network-heavy work (search + page fetch + LLM calls).
 
@@ -68,7 +66,7 @@ React Client
 
 ---
 
-### 5. Tech Stack Table
+### Tech Stack Table
 
 | Layer | Tech |
 |------|------|
@@ -81,7 +79,7 @@ React Client
 
 ---
 
-### 6. Folder Structure
+### Folder Structure
 
 ```
 .
@@ -94,7 +92,7 @@ React Client
 
 ---
 
-### 7. Installation (SUPER IMPORTANT)
+### Installation (SUPER IMPORTANT)
 
 #### Prerequisites
 - Node.js **>= 18**
@@ -165,7 +163,7 @@ VITE_API_URL=http://localhost:4000
 
 ---
 
-### 8. How It Works (Flow)
+### How It Works (Flow)
 
 1. User submits **name + optional description** from the React UI
 2. API creates a **job row** in Postgres (`status=pending`)
@@ -178,7 +176,7 @@ VITE_API_URL=http://localhost:4000
 
 ---
 
-### 9. Example Output
+### Example Output
 
 ```json
 {
@@ -196,7 +194,7 @@ VITE_API_URL=http://localhost:4000
 
 ---
 
-### 10. Design Decisions
+### Design Decisions
 
 - **Async pipeline (API + queue + worker)**: avoids long request latency; isolates failures; scales background work independently.
 - **Polling instead of websockets**: simplest reliable UX for async jobs; easy to operate and debug.
@@ -205,7 +203,7 @@ VITE_API_URL=http://localhost:4000
 
 ---
 
-### 11. Future Improvements
+### Future Improvements
 
 - Server-sent events (SSE) or websockets for real-time updates
 - Better HTML extraction (boilerplate removal, language detection)
@@ -215,7 +213,7 @@ VITE_API_URL=http://localhost:4000
 
 ---
 
-### 12. Author Section
+### Author Section
 
 Built by Puneeth  
 Backend-focused full-stack engineer  

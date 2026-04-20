@@ -92,7 +92,7 @@ React Client
 
 ---
 
-### Installation (SUPER IMPORTANT)
+### Installation
 
 #### Prerequisites
 - Node.js **>= 18**

@@ -61,8 +61,8 @@ React Client
 ```
 
 **Polling**
-- Requests list refreshes every **10s**
-- Job detail polls status every **30s** while pending/processing
+- Requests list refreshes every **5s**
+- Job detail polls status every **5s** while pending/processing
 
 ---
 

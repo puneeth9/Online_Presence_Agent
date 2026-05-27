@@ -64,6 +64,7 @@ async function extractProfile(name, description, sources) {
     '',
     'Sources:',
     sourcesText || '(no sources)',
+    'Answer only from the sources above and do not use your own training data to answer'
   ].join('\n');
 
   const responseText = await callLLM(prompt);

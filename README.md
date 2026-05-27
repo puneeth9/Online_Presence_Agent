@@ -1,182 +1,14 @@
-### Online Presence Agent
+# Online Presence Agent
 
-An async pipeline that turns a person’s public web footprint into a structured profile.
-
-- **Search → fetch → extract**: Brave Search + page fetching + LLM extraction
-- **Async by design**: API creates jobs, worker processes in the background, UI polls
-- **Full‑stack**: React (Vite) client + Node/Express server + Postgres + SQS
+Turn a person's name into a structured professional profile — automatically. The agent searches the web, reads the right pages, and synthesizes a clean JSON output without any manual curation.
 
 ![Demo](./assets/demo.gif)
 
 ---
 
-### Why This Project Matters
+## What It Does
 
-People’s “online presence” is scattered across profiles, articles, and social posts. This project turns that noisy, multi‑source data into a **single structured output** that’s easy to consume programmatically.
-
-For engineers, it’s an end‑to‑end example of a **production‑minded async system**: queue-backed job processing, resilient ingestion, and a polling UI that stays responsive while work runs in the background.
-
----
-
-### Features
-
-- **Name search → presence aggregation** via Brave Search API
-- **Page fetching pipeline** with HTML-to-text extraction and length limits
-- **LLM summarization/extraction** into a structured JSON profile
-- **Async job processing** with SQS + a dedicated worker process
-- **Polling system** in the UI (requests list + job detail)
-- **Modular architecture** (search/fetch/extract services, DB lifecycle, migrations)
-
----
-
-### Architecture Overview
-
-The system uses an async job flow so the UI stays fast while the backend performs network-heavy work (search + page fetch + LLM calls).
-
-**High-level flow**
-
-```
-React Client
-  │  POST /analyze
-  ▼
-API Server (Express)
-  │  insert jobs row (Postgres)
-  │  send message (SQS)
-  ▼
-Worker (SQS long polling)
-  │  set status=processing
-  │  Brave Search → top results
-  │  Fetch pages → store sources
-  │  LLM extract → store profile JSON
-  ▼
-Postgres (jobs + sources)
-
-React Client polling
-  │  GET /analyze/:id, GET /analyze/result/:id
-  ▼
-API Server (Express)
-  │  query jobs/sources (Postgres)
-  ▼
-React Client
-```
-
-**Polling**
-- Requests list refreshes every **10s**
-- Job detail polls status every **30s** while pending/processing
-
----
-
-### Tech Stack Table
-
-| Layer | Tech |
-|------|------|
-| Frontend | React (Vite), React Router, TypeScript |
-| Backend | Node.js, Express (CommonJS) |
-| AI | OpenAI (SDK) |
-| Search | Brave Search API |
-| Queue | AWS SQS |
-| Storage | Postgres (Docker), `pg` Pool |
-
----
-
-### Folder Structure
-
-```
-.
-├── client/                 # React UI (Vite)
-├── server/                 # API + worker + DB/migrations + docker-compose
-├── prompts/                # Build prompts used during development
-├── assets/                 # demo.gif
-└── README.md
-```
-
----
-
-### Installation
-
-#### Prerequisites
-- Node.js **>= 18**
-- npm
-- Docker Desktop (for Postgres)
-- API keys:
-  - Brave Search API key
-  - OpenAI API key
-  - AWS credentials for SQS
-
-#### Setup
-
-```bash
-git clone <your-repo-url>
-cd online-presence-agent
-```
-
-#### Backend (API + Postgres)
-
-```bash
-cd server
-npm install
-docker compose up -d
-npm run dev
-```
-
-#### Worker
-
-Open a second terminal:
-
-```bash
-cd server
-npm run worker
-```
-
-#### Frontend
-
-```bash
-cd client
-npm install
-npm run dev
-```
-
-#### Environment variables
-
-**Server** (`server/.env`)
-
-```bash
-PORT=4000
-
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/agentdb
-
-AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-SQS_QUEUE_URL=
-
-BRAVE_API_KEY=
-
-OPENAI_API_KEY=
-```
-
-**Client** (`client/.env`)
-
-```bash
-VITE_API_URL=http://localhost:4000
-```
-
----
-
-### How It Works (Flow)
-
-1. User submits **name + optional description** from the React UI
-2. API creates a **job row** in Postgres (`status=pending`)
-3. API publishes a message to **SQS** with `{ jobId, name }`
-4. Worker long-polls SQS, marks job **processing**
-5. Worker searches Brave, fetches pages, and stores rows in `sources`
-6. Worker calls the LLM to extract a structured profile JSON
-7. Worker stores the JSON into `jobs.result`, marks job **completed**
-8. Client polls job status/result and updates the UI automatically
-
----
-
-### Example Output
+Submit a name (and optional context). The system fans out across the web, reads the most relevant sources, and returns a structured profile with roles, companies, key links, and a confidence score — all within seconds, all async.
 
 ```json
 {
@@ -194,31 +26,242 @@ VITE_API_URL=http://localhost:4000
 
 ---
 
-### Design Decisions
+## Architecture
 
-- **Async pipeline (API + queue + worker)**: avoids long request latency; isolates failures; scales background work independently.
-- **Polling instead of websockets**: simplest reliable UX for async jobs; easy to operate and debug.
-- **Modular worker services**: clear separation of concerns (search vs fetch vs extract); easier to test/extend.
-- **Code-based migrations**: deterministic startup behavior for local/dev environments without ORM tooling.
+### The Agentic Loop
+
+The core insight: instead of blindly fetching every search result, an LLM agent drives its own research process. It decides what to search, which pages are worth reading, and whether it has enough data — just like a human researcher would.
+
+```
+User submits name
+      │
+      ▼
+API Server (Express)
+  ├─ creates job row (Postgres, status=pending)
+  └─ enqueues to SQS
+      │
+      ▼
+Worker (SQS long-poll)
+  └─ runProfileAgent()
+        │
+        ▼
+  ┌─────────────────────────────────────────────────────┐
+  │              Agentic Loop (up to 20 iterations)      │
+  │                                                       │
+  │  LLM ──tool_call──► web_search → Brave Search API   │
+  │   ▲                                                   │
+  │   │  tool_result                                      │
+  │   │                                                   │
+  │  LLM ──tool_call──► fetch_page → scrape URL          │
+  │   ▲                              persist to sources   │
+  │   │  tool_result                                      │
+  │   │                                                   │
+  │  LLM ──tool_call──► assess_completeness              │
+  │   ▲                    ├─ complete=true → stop        │
+  │   │                    └─ incomplete → next query     │
+  │   └──────────────────────────────────────────────────┤
+  │                                                       │
+  │  Stop when: model stops calling tools                 │
+  │           | assess_completeness returns complete=true │
+  │           | max iterations reached                    │
+  └─────────────────────────────────────────────────────┘
+        │
+        ▼
+  Synthesis: LLM produces structured JSON from all findings
+        │
+        ▼
+  Postgres (jobs.result updated, status=completed)
+        │
+      ▼
+React UI (polling every 5-10s) displays result
+```
+
+### Why Agentic vs. Linear
+
+The previous version ran a fixed pipeline: search → fetch all results → extract once. That approach fetches too much irrelevant content and misses follow-up signals.
+
+The agent loop is better because:
+
+| | Linear Pipeline | Agentic Loop |
+|---|---|---|
+| **Search strategy** | One fixed query | Adaptive — refines queries based on what it finds |
+| **Page selection** | Fetches all results | LLM selects only the most promising URLs |
+| **Completeness check** | Never — runs once | Built-in: `assess_completeness` tool gates synthesis |
+| **Follow-up searches** | None | Issues targeted follow-ups for missing fields |
+| **Resource usage** | Fixed cost per job | Efficient — stops as soon as data is sufficient |
+
+### Tools Available to the Agent
+
+| Tool | What it does |
+|------|-------------|
+| `web_search` | Queries Brave Search, returns top 5 results with title, URL, snippet |
+| `fetch_page` | Fetches and extracts text from a URL; persists it to the `sources` table |
+| `assess_completeness` | LLM self-evaluation — returns `complete`, `missing_fields`, `suggested_next_query` |
+
+### Tech Stack
+
+| Layer | Tech |
+|-------|------|
+| Frontend | React 19, Vite, TypeScript, React Router |
+| Backend | Node.js, Express 5, CommonJS |
+| Agent | OpenAI function calling (`gpt-4o-mini` by default) |
+| Search | Brave Search API |
+| Queue | AWS SQS |
+| Storage | PostgreSQL 15, `pg` pool |
+| Infra | Docker Compose (local Postgres) |
 
 ---
 
-### Future Improvements
+## Codebase Layout
 
-- Server-sent events (SSE) or websockets for real-time updates
-- Better HTML extraction (boilerplate removal, language detection)
-- Rate limiting + exponential backoff for external APIs
-- SQS DLQ (dead-letter queue) + poison message handling policies
-- Pagination + filtering for job history; richer observability/logging
+```
+.
+├── client/                     # React UI (Vite + TypeScript)
+│   └── src/
+│       ├── App.tsx             # Routes: /, /requests, /requests/:id
+│       └── api/ApiClient.ts    # Fetch wrapper, reads VITE_API_URL
+│
+├── server/
+│   └── src/
+│       ├── agent/
+│       │   ├── profileAgent.js # Agentic loop — main entry point for job processing
+│       │   └── tools.js        # Tool schemas + implementations (web_search, fetch_page, assess_completeness)
+│       ├── worker/
+│       │   ├── worker.js       # SQS long-poll loop
+│       │   ├── processJob.js   # Job orchestrator — calls runProfileAgent()
+│       │   ├── llm.service.js  # callLLM() + callLLMWithTools() (OpenAI, ESM-compat)
+│       │   ├── search.service.js
+│       │   ├── fetch.service.js
+│       │   ├── extract.service.js
+│       │   └── linearPipeline.js  # Original fixed pipeline (preserved for reference)
+│       ├── controllers/
+│       ├── routes/
+│       ├── db/                 # pg pool + auto-migrations
+│       └── server.js
+│
+└── prompts/                    # Prompt iteration scratch files
+```
+
+### API Routes
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/analyze` | Create job, enqueue to SQS |
+| `GET` | `/analyze` | List all jobs |
+| `GET` | `/analyze/:id` | Get job status |
+| `GET` | `/analyze/result/:id` | Get completed job result + sources |
+
+### Database Schema
+
+```sql
+jobs    (id UUID, name TEXT, description TEXT, status TEXT, result JSONB, created_at TIMESTAMP)
+sources (id SERIAL, job_id UUID → jobs, url TEXT, title TEXT, snippet TEXT, content TEXT, created_at TIMESTAMP)
+```
+
+Status flow: `pending` → `processing` → `completed` | `failed`
 
 ---
 
-### Author Section
+## Getting Started
 
-Built by Puneeth  
-Backend-focused full-stack engineer  
-Interested in AI agents & scalable systems  
+### Prerequisites
 
-GitHub: https://github.com/puneeth9
+- Node.js >= 18
+- Docker Desktop (for Postgres)
+- API keys: Brave Search, OpenAI, AWS (SQS)
 
-LinkedIn: https://www.linkedin.com/in/puneeth-sai-tumbalabeedu/
+### Clone and install
+
+```bash
+git clone <your-repo-url>
+cd online-presence-agent
+```
+
+### Start Postgres
+
+```bash
+cd server
+docker compose up -d
+```
+
+### Start the API server
+
+```bash
+cd server
+npm install
+npm run dev
+```
+
+### Start the worker (separate terminal)
+
+```bash
+cd server
+npm run dev:worker
+```
+
+### Start the frontend
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+### Environment variables
+
+**`server/.env`**
+
+```bash
+PORT=4000
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/agentdb
+
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+SQS_QUEUE_URL=
+
+BRAVE_API_KEY=
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4o-mini   # optional — override to gpt-4o for higher accuracy
+```
+
+**`client/.env`**
+
+```bash
+VITE_API_URL=http://localhost:4000
+```
+
+---
+
+## Design Decisions
+
+**Agentic loop over fixed pipeline** — the agent's ability to issue follow-up searches and self-assess completeness produces higher-quality profiles on ambiguous or sparse targets, at lower average cost than fetching everything blindly.
+
+**OpenAI function calling for tool dispatch** — using the native `tool_calls` API keeps the loop clean: the model returns structured tool invocations, the host executes them, and results feed back into the conversation. No prompt hacking required.
+
+**SQS + dedicated worker** — decouples the API from long-running agent work. The API stays fast, the worker scales independently, and failures in one don't affect the other.
+
+**Polling over WebSockets** — simpler to operate and debug for async jobs with variable completion times. Polling interval is adaptive: 5s while active, 10s on the list view.
+
+**ESM workaround for OpenAI SDK** — the server is CommonJS; the OpenAI SDK is ESM-first. A dynamic `import()` inside `llm.service.js` resolves the interop cleanly without converting the whole server.
+
+**Code-based migrations** — schema is applied on startup via `db/migrate.js`. No ORM, no migration runner needed in dev.
+
+---
+
+## What's Next
+
+- **Streaming progress** — SSE to push agent iteration updates to the UI in real time
+- **Richer tool set** — LinkedIn scraper, GitHub profile reader, news aggregator as additional agent tools
+- **DLQ + retry policy** — SQS dead-letter queue with exponential backoff for poison messages
+- **Confidence thresholds** — automatically trigger deeper research passes when confidence < 0.7
+- **Multi-target batch jobs** — enrich a list of contacts in a single request
+
+---
+
+## Author
+
+Built by Puneeth — backend-focused full-stack engineer working on AI agents and scalable async systems.
+
+- GitHub: [github.com/puneeth9](https://github.com/puneeth9)
+- LinkedIn: [linkedin.com/in/puneeth-sai-tumbalabeedu](https://www.linkedin.com/in/puneeth-sai-tumbalabeedu/)
